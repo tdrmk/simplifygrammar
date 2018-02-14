@@ -1,0 +1,6 @@
+*.o
+main
+*.gch
+test.ccp
+a.out
+*~
