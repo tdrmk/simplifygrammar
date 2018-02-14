@@ -74,7 +74,7 @@ void printfirstofrules() {
 		for (Rule rule : rules ) { // for each rule
 			Symbols firstset = getfirst(first,rule); // compute its first of RHS
 			printrule(nonterminal,rule);
-			cout << "\t Derives " << " ==> " << printsymbols(firstset);
+			cout << "\t Derives " << " ==> " ; printsymbols(firstset);
 		}
 	}
 }

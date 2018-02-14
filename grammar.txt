@@ -1,11 +1,4 @@
 # This is the Expression Grammar
-EXPR -> EXPR + TERM | EXPR - TERM | TERM
-TERM -> TERM * FACTOR | FACTOR | TERM / FACTOR | FACTOR
 FACTOR -> id | ( EXPR )  
-DSSD -> RERE EWEW | null
-EWEW -> dssds
-A -> B C | null  
-B -> b
-V -> X Y
-X -> x 
-Y -> y
+TERM -> TERM * FACTOR | TERM / FACTOR | FACTOR
+EXPR -> EXPR + TERM | EXPR - TERM | TERM
