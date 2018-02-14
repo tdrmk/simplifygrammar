@@ -1,12 +1,16 @@
 #include "simplifygrammar.h"
 
+// this function used to print first and follow sets ( FFSet structure) 
 void printffset(FFSet ffset){
 	// get max size 
+	// just for the looks of logs ..
 	int maxsize1 = 0 ; // stores max size of symbol
 	int maxsize2 = 0 ; // stores max count of symbols
+	// this loop is not needed just for the looks
 	for(pair<const Symbol,Symbols> &ffelem : ffset ){
 		Symbol symbol = ffelem.first ;
 		Symbols &symbols = ffelem.second ;
+		// keep track of the maximum sizes so that it can be formatted well
 		if ( symbol.size() > maxsize1 ) maxsize1 = symbol.size() ; 
 		string count = string("(") + to_string( symbols.size() ) + string(")") ;
 		if ( count.size() > maxsize2 ) maxsize2 = count.size() ;
@@ -23,15 +27,20 @@ void printffset(FFSet ffset){
 	}
 }
 
+// gets the first of vector of symbols ... useful in follow set computations
+// takes as input the first set .. to avoid recomputations and vector of non-terminals
+// it findsthe first of first symbol if contains null goes to the next .. till first symbol without null in their first set
+// or end of rule reached then adds null
 Symbols getfirst( FFSet first, Rule rule )  { // gets the first of vector of symbol
 	Symbols firstset ;
 	
+	// if null production it contains "null" in its first set ...
 	if ( rule.size() == 0) {// default case ..
 		firstset.insert("null") ; // if 'null' production
 		return firstset ;
 	}
 
-	bool nullpresent = false ;
+	bool nullpresent = false ; // flag to store if null is present in the current first set being looked at
 	for (  int i = 0 ; i < rule.size() ; i ++ ) {
 		Symbol symbol = rule[i] ;
 		// for each symbol ...
@@ -40,11 +49,11 @@ Symbols getfirst( FFSet first, Rule rule )  { // gets the first of vector of sym
 				nullpresent = true ;
 			else 
 				firstset.insert(tmpsymbol);
-		
+		// if null present we need to look at next symbol
 		if ( nullpresent ) { // if current symbol derives null
 			nullpresent = false ;
 			if ( i == (rule.size() - 1) ) // if last element
-				firstset.insert("null");
+				firstset.insert("null"); // add null to the set 
 			continue ; // look at next symbol ...
 		}
 		break ; // if null not present ...
@@ -53,33 +62,37 @@ Symbols getfirst( FFSet first, Rule rule )  { // gets the first of vector of sym
 
 }
 
+// this function just prints first of each of the rules based on the RHS
+// this is used to see what all terminals can a rule derive
 void printfirstofrules() {
-	FFSet first = getfirst();
+	FFSet first = getfirst(); // get first of all symbols
 	for( RuleSet ruleset : grammar ) {
+		// for each set of rules for a nonterminal
 		Symbol nonterminal = ruleset.first ;
-		Rules rules = ruleset.second ;
-		for (Rule rule : rules ) {
-			Symbols firstset = getfirst(first,rule);
-			cout << nonterminal << " -> " ;
-			if (rule.size() == 0) cout << " --null-- " ;
-			for ( Symbol symbol : rule) 
-				cout << " " << symbol << " " ;
-			cout << "==>" ; printsymbols(firstset);
+		Rules rules = ruleset.second ; // get the rules
+		cout << "Rules of " << nonterminal << endl ;
+		for (Rule rule : rules ) { // for each rule
+			Symbols firstset = getfirst(first,rule); // compute its first of RHS
+			printrule(nonterminal,rule);
+			cout << "\t Derives " << " ==> " << printsymbols(firstset);
 		}
 	}
 }
 
+// this function returns the first of current grammar
 FFSet getfirst() {
 	FFSet first;
+	// get current information of terminals and non-terminals
 	Symbols nonterminals,terminals,derivingsymbols;
 	getsymboldescription(nonterminals,terminals,derivingsymbols);
 	// Initialize it with terminals
+	// first of terminal is the terminal itself
 	for ( Symbol terminal :terminals )
 		first[terminal].insert(terminal);
 
-	FFSet newfirst = first ;
+	FFSet newfirst = first ; // create another set ... update it each time new symbol must be added loop if new symbol is added
 	do {
-		first = newfirst ;
+		first = newfirst ; // if they are different update the sets
 		for ( RuleSet ruleset : grammar ) {
 			Symbol nonterminal = ruleset.first ;
 			Rules rules = ruleset.second ;
@@ -92,17 +105,17 @@ FFSet getfirst() {
 					// if not null production 
 					// look at the symbols in each rule ...
 					for (int i = 0 ; i < rule.size() ; i ++) {
-						Symbol symbol = rule[i];
-						bool nullpresent = false ;
+						Symbol symbol = rule[i]; // get each symbol
+						bool nullpresent = false ; // if null is present in its first we need to add the first of next symbol as well
 						for (Symbol symboltmp : newfirst[symbol] )
 							if ( symboltmp == "null" ) // if null value
-								nullpresent = true ;
+								nullpresent = true ; // just set the flag and continue add other terminals
 							else // if not null
 								newfirst[nonterminal].insert(symboltmp);
 						
-						if ( nullpresent ) 
+						if ( nullpresent ) // if null was represent
 							if ( i == ( rule.size() -1 ) ) // if last symbol add null 
-								newfirst[nonterminal].insert("null");
+								newfirst[nonterminal].insert("null"); // since no more rule to look at
 							else 
 								continue ; // if not last null
 						else // if null absent
@@ -112,14 +125,20 @@ FFSet getfirst() {
 			}
 		}
 	} while ( first != newfirst ) ;
+	// if no change / update all the first was obtained 
+	// it can be done recursively or using dynamic programming 
+	// make sure not to lead to a infinite loop ie deadlock
 	return first ;
 }
+// this computes the follow set of each non-terminal in the grammar
 FFSet getfollow() {
 	FFSet follow ;
 	// initialize the follow set 
-	follow[startsymbol].insert("$") ;
-	FFSet first = getfirst();
-	FFSet newfollow = follow ;
+	follow[startsymbol].insert("$") ; // follow of start symbol always contains end of string marker
+	FFSet first = getfirst(); // get the first as follow is based on first of following symbols
+	FFSet newfollow = follow ; // do the same thing as above loop till no more updates possible to follow set 
+	// this technique does not suffer from infiinite looping thus terminates .. (USEFUL APPROACH)
+	// RECURSION MAY LEAD TO INFINITE CALLS because of cycles ...
 	do {
 		follow = newfollow ;
 		for ( RuleSet ruleset : grammar ) {
@@ -128,24 +147,24 @@ FFSet getfollow() {
 			for ( Rule rule : rules ) // for each rule
 				for (int i = 0 ; i < rule.size() ; i ++) {
 					if ( ! isterminal(rule[i]) ) {
-						bool nullpresent = false ;
+						bool nullpresent = false ; //  checks if null present in the first of following non-terminals
 						// if non-terminal 
-						if ( i == (rule.size() -1 ) ) nullpresent = true ;
+						if ( i == (rule.size() -1 ) ) nullpresent = true ; // if end of rule then follow of current includes follow of parent
 						else {
 							Rule following ( rule.begin() + i + 1, rule.end() ) ; // symbols after current non-terminal
-							Symbols firstset = getfirst(first,following);
+							Symbols firstset = getfirst(first,following); // get the first of following elements
 							for ( Symbol symbol : firstset ) 
-								if ( symbol == "null" ) nullpresent = true ;
-								else newfollow[rule[i]].insert(symbol);
+								if ( symbol == "null" ) nullpresent = true ; // if null just mark a flag .. NOTE: follow set NEVER contains a null
+								else newfollow[rule[i]].insert(symbol); // add remaining symbols
 						}
 						if ( nullpresent ) // if null present ... Add the follow of deriving non-terminal
-							for ( Symbol symbol : newfollow[nonterminal] ) 
+							for ( Symbol symbol : newfollow[nonterminal] )  // add symbols from follow of deriving non-terminal
 								newfollow[rule[i]].insert(symbol);
 						
 					}
 				}
 		}
-	} while ( follow != newfollow );
+	} while ( follow != newfollow ); // repeat above till no change
 	return follow ;
 }
 
@@ -210,7 +229,8 @@ FFSet getfollow() {
  						if ( follow[nonterminal].count(symbol1) > 0 )
  							commonsymbols.insert(symbol1);
  					if ( commonsymbols.size() > 0 ) {
- 						isLL1 = false ;
+ 						isLL1 = false ; // COndition 3 not satisfied 
+ 						// just print why not LL1
  						cout << "NOTE: Common Elements with follow " ; printsymbols(commonsymbols);
  						cout << "First contains null: " ; printrule(nonterminal,rules[j]);
  						printrule(nonterminal,rules[i]);

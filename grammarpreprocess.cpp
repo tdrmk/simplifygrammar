@@ -4,8 +4,8 @@
 void removeduplicaterules() {
 	for ( RuleSet &ruleset : grammar ) {
 		Rules &rules = ruleset.second ;
-		set<Rule>  setofrules (rules.begin(),rules.end());
-		rules = vector<Rule>(setofrules.begin(),setofrules.end());
+		set<Rule>  setofrules (rules.begin(),rules.end()); // store in set 
+		rules = vector<Rule>(setofrules.begin(),setofrules.end()); // convert back to vector form 
 	}
 }
 // this function removes deriving symbols not dering anything 
@@ -15,7 +15,7 @@ void removeunneccessaryderivingsymbols() {
 	for ( Symbol derivingsymbol : derivingsymbols ) {
 		// for each deriving symbol check if any rule it derives
 		if ( grammar.count(derivingsymbol) > 0 && grammar[derivingsymbol].size() == 0 ) {
-			grammar.erase(derivingsymbol);
+			grammar.erase(derivingsymbol); // if symbol deriving no rule remove it ..
 		}
 	}
 
@@ -29,13 +29,13 @@ bool contained_in(Rule rule, Symbols nullables){
 	return true ;
 }
 
-
+// This function removes all null productions ( A -> null )
 void removenullproductions() {
 	Symbols nullables ;
 	Symbols nonterminals,terminals,derivingsymbols;
 	getsymboldescription(nonterminals,terminals,derivingsymbols);
 
-	// Finf Nullable Non-terminals directly from rules
+	// Find Nullable Non-terminals directly from rules
 	for ( Symbol nonterminal : nonterminals ) {
 		if (grammar.count(nonterminal) > 0 ){
 			Rules & rules= grammar[nonterminal];
@@ -59,7 +59,7 @@ void removenullproductions() {
 				} 
 			}
 		}
-	} while ( newnullables.size() > nullables.size() );
+	} while ( newnullables.size() > nullables.size() ); // do it till no more new nullables
 	cout << "Final Set of Nullables: " ; printsymbols(nullables);
 
 	// Now generate new rules using nullables
@@ -147,6 +147,8 @@ void removeunitproductions() {
 		}
 	}
 	//printgrammar();
+	// since we have erased rules 
+	// there may be some non-deriving terminals remove them
 	removeunneccessaryderivingsymbols();
 	//printgrammar();
 	// Now add new rules 
@@ -174,8 +176,8 @@ void removeunitproductions() {
 	//printgrammar();
 }
 
-// this function removes all rules not deriving terminals
-// Note: NULL productions must be eliminated for it to work
+// this function removes all rules not deriving terminals 
+// Note: NULL productions must be eliminated for it to work as here 'null' is not considered at all
 void removenonderivingsymbols(){
 	Symbols nonterminals,terminals,derivingsymbols;
 	getsymboldescription(nonterminals,terminals,derivingsymbols);
@@ -219,6 +221,7 @@ void removenonderivingsymbols(){
 	// now remove symbols not deriving at all
 	removeunneccessaryderivingsymbols();
 }
+// removes all rules not reachable from start symbol
 void removenonreachablesymbols() {
 
 	// Start from startsymbol and obtain all reachable symbols

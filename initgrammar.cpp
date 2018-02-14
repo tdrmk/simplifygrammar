@@ -2,8 +2,8 @@
 
 // Assumes Valid grammar
 // Non-terminal is before '->'
-Grammar grammar ;
-Symbol startsymbol ;
+Grammar grammar ; // stores the grammar
+Symbol startsymbol ;// start symbol
 
 // this function initializes the grammar
 // gets all the rules from file and stores them in Grammar structure
@@ -21,6 +21,9 @@ Symbol startsymbol ;
 // A -> B b | C c | null
 // takes filename as argument and constructs a grammar 
 // it must be called at start 
+// THINGS THAT CAN BE ADDED :
+// Identify invalid rules and tell them to the user ..
+// and check if all deriving symbols are non-terminals
 void initgrammar(string filename){
 	// uncomment this line if you want to initialize a new grammar each time
 	// currently you can call this on two files grammar rules get appended
@@ -35,32 +38,36 @@ void initgrammar(string filename){
 				// Comment
 				getline(file,nextsymbol); // ignore the line .. the remaining part of line not looked for any rule
 			}
-			else if (nextsymbol == "->") {
+			else if (nextsymbol == "->") { // if a production
 				// implies new rule
-				nonterminalnew = rule.back(); // this implies last/prev symbol was non-terminal
+				nonterminalnew = rule.back(); // this implies last/prev symbol was non-terminal read . this is the new non-terminal of the rule
+				if ( isterminal(nonterminalnew) ) { // latest addition
+					cout << "WARNING: INVALID GRAMMAR! terminal deriving symbols." << endl ;
+				}
 				rule.pop_back();  // pop it out
 				if ( ! rule.empty() ) {
 					// if previously rule was read and not added then add it to grammar
-					addrule(nonterminalold,rule);
+					addrule(nonterminalold,rule); // add a rule for the previous deriving symbol
 				}
 				if (grammar.empty()) {
 					// no rule in grammar then it is the start symbol (the first symbol)
-					startsymbol = nonterminalnew ;
-					cout << "Note: Start Symbol (" + startsymbol + ")" << endl ;
+					startsymbol = nonterminalnew ; // if no rule yet added then must be first symbol
+					cout << "Note: Start Symbol (" + startsymbol + ")" << endl ; // tell the user
 				}
-				nonterminalold = nonterminalnew ;
+				nonterminalold = nonterminalnew ; // update the non-terminal
 			}
 			else if ( nextsymbol == "|") {
 				// Add the previous rule to the grammar
 				if ( ! rule.empty() ) // just a check may be previous rule was null
-					addrule(nonterminalold,rule);
+					addrule(nonterminalold,rule); // rule is one with same deriving non-terminal 
+					// maintain the non-terminal and add the rule
 			}
 			else if ( nextsymbol == "null" ) {
 				// if null rule .. then rule must be empty just add it if valid grammar
 				if ( ! rule.empty() )
-					cout << "WARNING: symbols exist before a null production." << endl ;
+					cout << "WARNING: symbols exist before a null production." << endl ; // WARN the user about some invalidity
 				rule.clear() ; // for sake of completeness
-				addrule(nonterminalold,rule);
+				addrule(nonterminalold,rule); // add the null production
 			}
 			else {
 				// if just another symbol
@@ -69,11 +76,11 @@ void initgrammar(string filename){
 		}
 		if ( !rule.empty() ) {
 			// if any rule remaining to be added add it
-			addrule(nonterminalold,rule);
+			addrule(nonterminalold,rule); // add the last rule
 		}
 		// once all rule obtained clean them of duclicates
 		removeduplicaterules();
-		file.close();	
+		file.close();	// close the file
 	}
 	else {
 		perror("Unable to open file.");
@@ -117,6 +124,7 @@ void getsymboldescription(Symbols &nonterminals, Symbols &terminals, Symbols &de
 	}
 }
 // prints a set of symbols
+// may be a repititive task while debugging or showing to user or logging
 void printsymbols(Symbols symbols) {
 	cout << "(" << symbols.size() << ")" ;
 	for ( Symbol terminal : symbols ) 
@@ -124,19 +132,20 @@ void printsymbols(Symbols symbols) {
 	cout << endl ;
 }
 
+// print the grammar
 void printgrammar() {
 	// get the symbols of the grammar
 	Symbols nonterminals,terminals,derivingsymbols;
 	getsymboldescription(nonterminals,terminals,derivingsymbols);
-	
+	// Print the description of grammar
 	cout << "Start Symbol : " << startsymbol << endl ;
 	cout << "Terminals : " ;printsymbols(terminals);
 	cout << "Non-Terminals : " ; printsymbols(nonterminals);
-	cout << "Deriving Symbols : "; printsymbols(derivingsymbols);
+	cout << "Deriving Symbols : "; printsymbols(derivingsymbols); // usefull in debugging
 	cout << "Rules : " << endl ;
-	int count = 1 ;
+	int count = 1 ; // to display with rule number just to keep track of count
 	// get maz size of deriving symbol ..
-	int maxsize = 0 ;
+	int maxsize = 0 ; // for the formating for aesthetics
 	for (RuleSet &ruleset : grammar) {
 		Symbol derivingsymbol = ruleset.first ;
 		if ( derivingsymbol.size() > maxsize  ) maxsize = derivingsymbol.size() ;
@@ -162,6 +171,7 @@ void addrule(Symbol nonterminal, Rule &rule) {
 	grammar[nonterminal].push_back(rule); // grammar is a map while rule is vector
 	rule.clear() ; // clear the rule
 }
+// this function prints a rule
 void printrule(Symbol nonterminal,Rule rule) {
 	cout << nonterminal << " -> " ;
 	if ( rule.empty() ) // null production
